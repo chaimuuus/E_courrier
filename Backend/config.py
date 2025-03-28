@@ -1,5 +1,10 @@
 import os
 
+API_KEY = os.getenv("API_KEY")
+API_SECRET = os.getenv("API_SECRET")
+CLOUD_NAME = os.getenv("CLOUD_NAME")
+
+
 class Config:
     # Define your configuration settings here
     SECRET_KEY = os.urandom(20)
