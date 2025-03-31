@@ -4,6 +4,7 @@ API_KEY = os.getenv("API_KEY")
 API_SECRET = os.getenv("API_SECRET")
 CLOUD_NAME = os.getenv("CLOUD_NAME")
 
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 class Config:
     # Define your configuration settings here

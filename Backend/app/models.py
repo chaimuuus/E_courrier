@@ -12,11 +12,11 @@ class Utilisateur(db.Model):
     
 class Contact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nom_complet = db.Column(db.String(100), nullable=False)
+    nom_complet = db.Column(db.String(100))
     email = db.Column(db.String(100))
     numero_tel = db.Column(db.String(20))
     adresse = db.Column(db.Text)
-    organisation= db.Column(db.String(50), nullable=False)
+    organisation= db.Column(db.String(50) ) 
 
  
  
