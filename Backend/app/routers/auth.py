@@ -3,9 +3,10 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import (
     create_access_token, jwt_required, get_jwt_identity, JWTManager
 )
-from ..models import Utilisateur
+from ..models import Contact, Utilisateur  
 from ..create_app import db
 from datetime import timedelta
+from functools import wraps
 import logging
 
 # Initialisation du Blueprint et des outils
@@ -18,12 +19,7 @@ def home():
 
 # 📝 INSCRIPTION (Seulement pour l'admin)
 @auth_bp.route('/register', methods=['POST'])
-@jwt_required()  # Seuls les admins peuvent ajouter un utilisateur
 def register():
-    current_user = get_jwt_identity()
-    if current_user["role"] != "admin":
-        return jsonify({"message": "Accès refusé"}), 403
-
     data = request.get_json()
     
     # Vérification des données
@@ -67,11 +63,11 @@ def login():
     if not utilisateur or not bcrypt.check_password_hash(utilisateur.mot_de_passe, data["password"]):
         return jsonify({"message": "Identifiants incorrects"}), 401
 
-    # Générer un token JWT avec une expiration de 2 jours
     access_token = create_access_token(
-        identity={"id": utilisateur.id, "role": utilisateur.role},
-        expires_delta=timedelta(days=2)
-    )
+    identity=str(utilisateur.id),  # 🔥 Convertir l'ID en string
+    additional_claims={"role": utilisateur.role},  # 🎯 Ajouter le rôle séparément
+    expires_delta=timedelta(days=2)
+)
     
     return jsonify({
         "access_token": access_token,
@@ -83,3 +79,90 @@ def login():
 @jwt_required()
 def logout():
     return jsonify({"message": "Déconnexion réussie"}), 200
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        current_user = get_jwt_identity()
+        print("DEBUG - current_user:", current_user)  # 👀 Vérification
+
+        # Si current_user est un string, convertir en int ou récupérer l'objet utilisateur
+        if isinstance(current_user, str) or isinstance(current_user, int):
+            user = Utilisateur.query.get(int(current_user))
+            if not user or user.role != "admin":
+                return jsonify({"message": "Accès refusé. Admin uniquement"}), 403
+        else:
+            if current_user.get("role") != "admin":
+                return jsonify({"message": "Accès refusé. Admin uniquement"}), 403
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+@auth_bp.route('/users', methods=['GET'])
+@jwt_required()
+def get_users():
+    return admin_required(_get_users)()
+
+def _get_users():
+    utilisateurs = Utilisateur.query.all()
+    users_list = [
+        {
+            "id": user.id,
+            "nom": user.nom,
+            "prenom": user.prenom,
+            "email": user.email,
+            "numero_tel": user.numero_tel,
+            "role": user.role
+        }
+        for user in utilisateurs
+    ]
+    return jsonify({"utilisateurs": users_list}), 200
+
+@auth_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    return admin_required(_delete_user)(user_id)
+
+def _delete_user(user_id):
+    user = Utilisateur.query.get(user_id)
+    if not user:
+        return jsonify({"message": "Utilisateur non trouvé"}), 404
+
+    # Supprimer d'abord tous les contacts liés à cet utilisateur
+    Contact.query.filter_by(utilisateur_id=user_id).delete(synchronize_session=False)
+
+    # Supprimer ensuite l'utilisateur
+    db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({"message": "Utilisateur et ses contacts supprimés avec succès"}), 200
+
+
+@auth_bp.route('/users/<int:user_id>', methods=['PUT'])
+@jwt_required()
+def update_user(user_id):
+    return admin_required(_update_user)(user_id)
+
+def _update_user(user_id):
+    user = Utilisateur.query.get(user_id)
+    if not user:
+        return jsonify({"message": "Utilisateur non trouvé"}), 404
+
+    data = request.get_json()
+    if "nom" in data:
+        user.nom = data["nom"]
+    if "prenom" in data:
+        user.prenom = data["prenom"]
+    if "email" in data:
+        if Utilisateur.query.filter(Utilisateur.email == data["email"], Utilisateur.id != user_id).first():
+            return jsonify({"message": "Cet email est déjà utilisé"}), 400
+        user.email = data["email"]
+    if "numero_tel" in data:
+        user.numero_tel = data["numero_tel"]
+    if "role" in data:
+        user.role = data["role"]
+
+    db.session.commit()
+    return jsonify({"message": "Utilisateur mis à jour avec succès"}), 200

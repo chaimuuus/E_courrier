@@ -18,16 +18,17 @@ def create_app():
     app.config.from_object(Config)  # ✅ Charge la config depuis ton fichier Config
     app.config["SESSION_TYPE"] = "filesystem"  # Permet de stocker la session côté serveur
     app.secret_key = "un_secret_aleatoire"
+    app.config["JWT_SECRET_KEY"] = "chaima"
 
-    Session(app)  # Initialise Flask-Session
-
+    # Initialisation correcte des extensions
+    sess.init_app(app)  # ✅ Utilise l'instance globale
     db.init_app(app)
     bcrypt.init_app(app)
     socketio.init_app(app)
-    jwt.init_app(app)
+    jwt.init_app(app)  # ✅ Ne pas recréer une nouvelle instance ici !
 
     from .routers.auth import auth_bp
-    from .routers.admin import google_bp
+    from .routers.contact import google_bp
     from .models import Utilisateur, Contact, Courrier, Document, Workflow  
 
     with app.app_context():

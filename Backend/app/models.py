@@ -16,10 +16,12 @@ class Contact(db.Model):
     email = db.Column(db.String(100))
     numero_tel = db.Column(db.String(20))
     adresse = db.Column(db.Text)
-    organisation= db.Column(db.String(50) ) 
-
- 
- 
+    organisation = db.Column(db.String(50))
+    utilisateur_id = db.Column(
+        db.Integer, 
+        db.ForeignKey("utilisateur.id", ondelete="CASCADE"), 
+        nullable=False
+    )
     
 # Association Many-to-Many pour la liste de diffusion
 courrier_utilisateur = db.Table('courrier_utilisateur',
