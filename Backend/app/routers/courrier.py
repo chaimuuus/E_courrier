@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
-from ..models import db, Courrier, Utilisateur,Document,Notification
+from ..models import db, Courrier, Utilisateur,Document,Notification,Contact
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from functools import wraps
 
@@ -17,7 +17,7 @@ from flask_jwt_extended import (
     create_access_token, jwt_required, get_jwt_identity, JWTManager
 )
  
-UPLOAD_FOLDER = '/path/to/upload/folder'  # Répertoire où tu veux enregistrer les fichiers
+UPLOAD_FOLDER = 'C:\\Users\\User\\Downloads'  # Répertoire où tu veux enregistrer les fichiers
 
 # Vérifie si le type de fichier est autorisé
 def allowed_file(filename):
@@ -30,45 +30,51 @@ def save_courrier():
     data = request.form
     
     # Récupération des informations du formulaire
-    type_courrier = data.get('type_courrier')
-    priority = data.get('priority')
-    object = data.get('object')
-    sender_id = data.get('sender_id')
-    diffusion_ids = request.form.getlist('diffusion_ids')  # Liste des utilisateurs sélectionnés
-    
+    type_courrier = request.form.get('type_courrier')
+    priority = request.form.get('priority')
+    object = request.form.get('object')
+    sender_id = request.form.get('sender_id')
+    diffusion_ids = request.form.getlist('diffusion_ids')
+    arrival_date_str = request.form.get('arrival_date')
+        
     # Vérification de la présence des champs nécessaires
     if not type_courrier or not priority or not object or not sender_id:
         return jsonify({"message": "Tous les champs sont requis"}), 400
+    sender = Contact.query.get(sender_id)
+    if not sender:
+        return jsonify({"message": f"L'expéditeur avec l'ID {sender_id} n'existe pas."}), 400
+    # Convertir arrival_date en datetime si fourni
+    if arrival_date_str:
+        try:
+            arrival_date = datetime.strptime(arrival_date_str, '%Y-%m-%d %H:%M:%S')  # Format : 'YYYY-MM-DD HH:MM:SS'
+        except ValueError:
+            return jsonify({"message": "Format de la date d'arrivée incorrect, utilisez 'YYYY-MM-DD HH:MM:SS'"}), 400
+    else:
+        arrival_date = datetime.utcnow()  # Si la date d'arrivée n'est pas fournie, on utilise la date actuelle
 
     # Création du courrier
     courrier = Courrier(
         type_courrier=type_courrier,
         priority=priority,
         object=object,
-        sender_id=sender_id  # Assignation de l'expéditeur
+        sender_id=sender_id,
+        arrival_date=arrival_date  # Assignation de la date d'arrivée
     )
     db.session.add(courrier)
     db.session.commit()  # Sauvegarde du courrier
-
-    # Ajout des utilisateurs dans la liste de diffusion
+    
+    
     for user_id in diffusion_ids:
         user = Utilisateur.query.get(user_id)
         if user:
             courrier.liste_diffusion.append(user)
 
+# Ajouter un flush ici pour forcer la mise à jour de la base de données
+    db.session.flush()
     db.session.commit()  # Sauvegarde des modifications du courrier
 
-    # Envoi de notifications aux utilisateurs de la liste de diffusion
-    for user_id in diffusion_ids:
-        user = Utilisateur.query.get(user_id)
-        if user:
-            notification = Notification(
-                utilisateur_id=user.id,
-                courrier_id=courrier.id,
-                message=f"Vous avez reçu un nouveau courrier : {object}",
-                statut="non lu"
-            )
-            db.session.add(notification)
+   
+   
 
     # Traitement du fichier (si un fichier est inclus)
     if 'file' in request.files:

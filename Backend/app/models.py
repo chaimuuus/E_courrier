@@ -1,6 +1,13 @@
 from .create_app import db
 from datetime import datetime
 
+
+# Association Many-to-Many pour la liste de diffusion
+courrier_utilisateur = db.Table('courrier_utilisateur',
+    db.Column('courrier_id', db.Integer, db.ForeignKey('courrier.id'), primary_key=True),
+    db.Column('utilisateur_id', db.Integer, db.ForeignKey('utilisateur.id'), primary_key=True))
+    
+    
 class Utilisateur(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nom = db.Column(db.String(100), nullable=False)
@@ -9,6 +16,7 @@ class Utilisateur(db.Model):
     mot_de_passe = db.Column(db.String(255), nullable=False)
     numero_tel = db.Column(db.String(20))  # Tu peux ajuster la taille si nécessaire
     role = db.Column(db.String(50), nullable=False)
+    
     
 class Contact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,11 +31,6 @@ class Contact(db.Model):
         nullable=False
     )
     
-# Association Many-to-Many pour la liste de diffusion
-courrier_utilisateur = db.Table('courrier_utilisateur',
-    db.Column('courrier_id', db.Integer, db.ForeignKey('courrier.id'), primary_key=True),
-    db.Column('utilisateur_id', db.Integer, db.ForeignKey('utilisateur.id'), primary_key=True)
-)
 
 class Courrier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
