@@ -18,7 +18,7 @@ def home():
     return jsonify({"message": "Hey Chaimuus!"}), 200
 
 # 📝 INSCRIPTION (Seulement pour l'admin)
-@auth_bp.route('/register', methods=['POST'])
+@auth_bp.route('/add_user', methods=['POST'])
 def register():
     data = request.get_json()
     

@@ -37,14 +37,6 @@ class Courrier(db.Model):
     object = db.Column(db.String(255), nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey('contact.id'), nullable=False)
 
-    initiateur_id = db.Column(db.Integer, db.ForeignKey('utilisateur.id'), nullable=False)  
-    destinataire_id = db.Column(db.Integer, db.ForeignKey('utilisateur.id'), nullable=True)  # service ou entité traitante principale
-
-    # Relations
-    sender = db.relationship('Contact', backref='courriers_envoyes')
-    initiateur = db.relationship('Utilisateur', foreign_keys=[initiateur_id])
-    destinataire = db.relationship('Utilisateur', foreign_keys=[destinataire_id])
-
     # Liste de diffusion finale (utilisateurs sélectionnés dans la partie traitante)
     liste_diffusion = db.relationship('Utilisateur', secondary=courrier_utilisateur, backref='courriers_diffusés')
     

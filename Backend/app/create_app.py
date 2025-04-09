@@ -29,12 +29,14 @@ def create_app():
 
     from .routers.auth import auth_bp
     from .routers.contact import google_bp
+    from .routers.courrier import courrier_bp
     from .models import Utilisateur, Contact, Courrier, Document, Workflow  
 
     with app.app_context():
         db.create_all()
         app.register_blueprint(auth_bp, url_prefix="/auth")
         app.register_blueprint(google_bp)
+        app.register_blueprint(courrier_bp)
         print("✅ Tables créées avec succès !")
 
     # ✅ Test si la session fonctionne
