@@ -40,13 +40,9 @@ def create_app():
         print("✅ Tables créées avec succès !")
 
     # ✅ Test si la session fonctionne
-    @app.route("/set-test-session")
+    @app.route("/")
     def set_test_session():
-        session["test"] = "OK"
-        return "Session enregistrée."
-
-    @app.route("/get-test-session")
-    def get_test_session():
-        return f"Valeur en session : {session.get('test', '❌ Rien trouvé')}"
+    
+        return "heloo to the app ."
 
     return app
